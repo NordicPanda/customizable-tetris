@@ -407,7 +407,7 @@ class Piece:
 game_field = Field(10, 20)
 window = MainWindow()
 w_settings = SettingsWindow()
-pause_button = Button(140, 25, (0, 0, 50), 'Pause game')
+pause_button = Button(140, 25, (0, 0, 50), 'Pause game')  # this shouldn't be here, forgot to move to MainWindow
 piece = Piece(game_field.width // 2 - 1, 0, 0)
 next_piece = Piece(game_field.width // 2 - 1, 0, 0)
 done = False           # closes setings window
