@@ -232,10 +232,10 @@ class Field:
         self.level = init_level                          # current difficulty (1 to 10)
         self.game_speed = 1000 - (self.level - 1) * 100  # delay in ms between piece moves down
         self.cells = [([1] + [0 for w in range(self.width)] + [1]) for h in range(self.height)] + [[1] * (self.width + 2)]
-        self.field = pg.Surface((CELL_SIZE * self.width, CELL_SIZE * self.height))
-        pg.time.set_timer(pg.USEREVENT, self.game_speed)
-        self.total_rows_deleted = 0
-        self.score = 0
+        self.field = pg.Surface((CELL_SIZE * self.width, CELL_SIZE * self.height))   # field has columns of ones at sides
+        pg.time.set_timer(pg.USEREVENT, self.game_speed)                             # for easier checking if a piece
+        self.total_rows_deleted = 0                                                  # can be moved; also the bottom row
+        self.score = 0                                                               # of ones for the same purpose
 
     def draw(self):  # vertical line of ones causes shift in x coordinates, so draw everything moved one cell to the left
         for y in range(len(self.cells)):
