@@ -6,6 +6,8 @@
 
 import pygame as pg
 from random import choice
+from os import path
+import sys
 
 pg.init()
 
@@ -24,6 +26,15 @@ class MainWindow:
         self.font = pg.font.SysFont('tahoma', 16)
         self.big_font = pg.font.SysFont('tahoma', 50, bold=True)
         self.small_font = pg.font.SysFont('tahoma', 10)
+
+    def _resource_path(self, relative_path):   # get full path for included files, needed for compiling to exe
+        try:                                                                # thanks to Max from StackOverflow
+            # PyInstaller creates a temp folder and stores path in _MEIPASS
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = path.abspath(".")
+    
+        return path.join(base_path, relative_path)
 
     def show_score(self):
         rows = game_field.total_rows_deleted
@@ -55,7 +66,7 @@ class MainWindow:
 
     def show_start_menu(self):
         pg.display.set_caption('Tetris')
-        bg = pg.image.load('bg.png')
+        bg = pg.image.load(self._resource_path('bg.png'))
         self.screen.blit(bg, (0, 0))        
         win_size_x, win_size_y = self.screen.get_size()
         font = pg.font.SysFont('tahoma', 30, bold=True)
@@ -97,6 +108,9 @@ class MainWindow:
         self.screen.blit(game_over, ((win_size_x - label1_size[0]) // 2, (win_size_y - label1_size[1]) // 2))
         self.screen.blit(press_space, ((win_size_x - label2_size[0]) // 2, (win_size_y - label2_size[1]) // 2 + 50))
         pg.time.set_timer(pg.USEREVENT, 0)
+
+    def create_pause_button(self):
+        return Button(140, 25, (0, 0, 50), 'Pause game')
 
     def pause(self):
         win_size_x, win_size_y = self.screen.get_size()
@@ -232,10 +246,10 @@ class Field:
         self.level = init_level                          # current difficulty (1 to 10)
         self.game_speed = 1000 - (self.level - 1) * 100  # delay in ms between piece moves down
         self.cells = [([1] + [0 for w in range(self.width)] + [1]) for h in range(self.height)] + [[1] * (self.width + 2)]
-        self.field = pg.Surface((CELL_SIZE * self.width, CELL_SIZE * self.height))   # field has columns of ones at sides
-        pg.time.set_timer(pg.USEREVENT, self.game_speed)                             # for easier checking if a piece
-        self.total_rows_deleted = 0                                                  # can be moved; also the bottom row
-        self.score = 0                                                               # of ones for the same purpose
+        self.field = pg.Surface((CELL_SIZE * self.width, CELL_SIZE * self.height))
+        pg.time.set_timer(pg.USEREVENT, self.game_speed)
+        self.total_rows_deleted = 0
+        self.score = 0
 
     def draw(self):  # vertical line of ones causes shift in x coordinates, so draw everything moved one cell to the left
         for y in range(len(self.cells)):
@@ -273,7 +287,7 @@ class Piece:
     def __init__(self, x, y, tileset):  # x and y in cells
         self.x = x
         self.y = y
-        self.blocks = pg.image.load('blocks.bmp')
+        self.blocks = pg.image.load(window._resource_path('blocks.bmp'))
         self.tileset = tileset
         self.tileset_changed = False
         self.shape = choice((((0, 1, 0),    # piece color depends on numbers in shape
@@ -407,10 +421,9 @@ class Piece:
 game_field = Field(10, 20)
 window = MainWindow()
 w_settings = SettingsWindow()
-pause_button = Button(140, 25, (0, 0, 50), 'Pause game')  # this shouldn't be here, forgot to move to MainWindow
 piece = Piece(game_field.width // 2 - 1, 0, 0)
 next_piece = Piece(game_field.width // 2 - 1, 0, 0)
-done = False           # exit game if True
+done = False           # if True, exit event loop and close program
 gameover = False
 paused = False
 game = False           # True when a game is in process, False in menus
@@ -437,12 +450,12 @@ while not done:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_LEFT:
                     piece.move('left')
-                if event.key == pg.K_RIGHT:
+                elif event.key == pg.K_RIGHT:
                     piece.move('right')
 
-                if event.key == pg.K_DOWN:
+                elif event.key == pg.K_DOWN:
                     piece.rotate_ccw()
-                if event.key == pg.K_UP:
+                elif event.key == pg.K_UP:
                     piece.rotate_cw()
 
                 if event.key == pg.K_DELETE:
@@ -502,23 +515,24 @@ while not done:
             if show_next:
                 window.show_next(next_piece)
 
-            pause_button.draw(window.screen, window.screen.get_size()[0] - 160, window.screen.get_size()[1] - 55)
-
             if gameover:
                 window.game_over()
 
+            pause_button = window.create_pause_button()
             if paused:
                 window.pause()
                 pause_button.text = 'Resume game'
             else:
                 pause_button.text = 'Pause game'
 
+            pause_button.draw(window.screen, window.screen.get_size()[0] - 160, window.screen.get_size()[1] - 55)
+
             window.show_score()
 
         elif not game and not settings:       # main menu
             window.show_start_menu()
-            btnStart, btnResume, btnSettings, btnQuit = window.create_menu_buttons()
-
+            btnStart, btnResume, btnSettings, btnQuit = window.create_menu_buttons()  # not sure if it's ok to create buttons here
+                                                                                      # maybe move them out of the event loop
             if event.type == pg.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = pg.mouse.get_pos()
 
